@@ -13,15 +13,16 @@
 - **Fork rule:** never force-push or rewrite `origin/master`; `origin/master` stays
   a clean fast-forward mirror of `upstream/master`. All fork work lives on
   `fork/*` branches and merges into `fork/main` only via fast-forward or clean
-eps merges with reviewed diffs.
+  merge commits with reviewed diffs.
 
-## Deployment target (user's production)
+## Deployment target
 
-- Deft **v0.3.0-preview.15** self-hosted at `https://hq.nghia.im` (Docker Compose).
-- Hermes **0.21.5** (NousResearch/hermes-agent) on a separate host, profiles
-  `deft-exp` / `deft-lele` (keep isolated from the personal `default` profile).
-- Provider: BazaarLink, model gpt-oss-20b.
-- Test employees in Deft: `hermes-test`, `lele`.
+- Deft **v0.3.0-preview.15** self-hosted (Docker Compose), on a host separate
+  from the Hermes runtime. Endpoint/employee details are deployment-specific
+  and intentionally not recorded here — see the operator's private notes.
+- Hermes **0.21.5** (NousResearch/hermes-agent). Keep test profiles isolated
+  from any personal/default profile.
+- Compat target pair for all integration work: Deft preview.15 + Hermes 0.21.5.
 
 ## Compat goal (fork policy)
 
@@ -53,18 +54,17 @@ batched local tool calls. `runtime_setup.troubleshooting` gained a matching
 line. Regression assertions added in
 `apps/api/test/agent-certification-stability.test.ts`.
 
-**Validation:** NOT YET RUN (agent has no test-runner access in this session).
-User must run:
-```bash
-cd apps/api && pnpm test -- agent-certification-stability
-```
-Then deploy to the preview.15 instance and re-run certification end-to-end:
-start certification, paste prompt into `hermes chat --cli --max-turns 20`,
-restart the Hermes gateway once for the restart-proof stages.
+**Validation (local):** Typecheck clean (`tsc --noEmit`), and
+`agent-certification-stability.test.ts` passed **7/7** against a disposable
+pgvector test container (thrown away afterward; no real database touched).
+
+**Validation (deployment):** NOT YET RUN. Deploy to the preview.15 instance
+and re-run certification end-to-end: start certification, paste prompt into
+`hermes chat --cli --max-turns 20`, restart the Hermes gateway once for the
+restart-proof stages.
 
 **Open sub-items:**
-- [ ] Run `pnpm test -- agent-certification-stability` locally.
-- [ ] Run certification end-to-end on `hq.nghia.im` with the updated prompt.
+- [ ] Run certification end-to-end on the deployment with the updated prompt.
 - [ ] Watch for: nonce recorded via `record_decision`, restart stage green,
       exactly one delivery + one reply (no duplicate channel events).
 
@@ -153,5 +153,11 @@ git merge upstream/master       # on fork/main, resolve, push origin fork/main
   tracked, preserving experiment history). Wrote certification prompt fix
   (one tool call per turn, Hermes batching warning) in
   `agent-employees.ts` + regression assertions in
-  `agent-certification-stability.test.ts`. This file created. Tests NOT run —
-  user must run `pnpm test -- agent-certification-stability` and report back.
+  `agent-certification-stability.test.ts`. Committed `b68151d` (user pushes
+  manually — SSH key needs a passphrase). Typecheck + stability suite run
+  locally: 7/7 pass on a disposable test DB. Follow-up commit: sanitized the
+  deployment-target section (personal stack details removed) and updated this
+  session log; the previously recorded personal endpoints/profiles/provider
+  were removed from this file.
+- **2026-10-04 (session 1, amend):** Roadmap edits re-sanitized after user
+  request; also fixed a typo in fork rules ("eps merges" → "merge commits").

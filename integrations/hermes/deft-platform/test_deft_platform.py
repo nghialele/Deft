@@ -55,6 +55,19 @@ class FakeConfig:
 
 
 class DeftPlatformSkeletonTests(unittest.TestCase):
+    def setUp(self):
+        # Hermes >= 0.21 publishes gateway runtime status to
+        # HERMES_HOME/gateway_state.json on every adapter connect/disconnect
+        # through a process-global daemon writer thread. Under a patched
+        # HERMES_HOME temp dir the asynchronous write races
+        # TemporaryDirectory cleanup ("Directory not empty"). This suite never
+        # asserts on runtime status, so neutralize the side channel.
+        status_patch = patch(
+            "gateway.status.publish_runtime_status", lambda **fields: 0
+        )
+        status_patch.start()
+        self.addCleanup(status_patch.stop)
+
     def test_readiness_requires_governed_attachment_workflow_tools(self):
         self.assertTrue({
             "attachment_list",
@@ -114,13 +127,16 @@ class DeftPlatformSkeletonTests(unittest.TestCase):
                 loop.close()
 
         try:
+            from tools import mcp_tool_handlers
+            from tools import mcp_tool_loop
+
             with patch.dict(mcp_tool._servers, {server_name: server}), patch.object(
-                mcp_tool,
+                mcp_tool_loop,
                 "_run_on_mcp_loop",
                 side_effect=run_on_loop,
             ):
                 mcp_tool._server_error_counts.pop(server_name, None)
-                handler = mcp_tool._make_tool_handler(server_name, "task_update", 30.0)
+                handler = mcp_tool_handlers._make_tool_handler(server_name, "task_update", 30.0)
                 for _ in range(mcp_tool._CIRCUIT_BREAKER_THRESHOLD + 2):
                     payload = json.loads(handler({}))
                     self.assertNotIn("error", payload)

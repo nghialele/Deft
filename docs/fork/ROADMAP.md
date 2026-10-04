@@ -40,6 +40,13 @@ maintainer supplies an official gate for this pair.
 
 ### 1. Certification prompt fix (record_decision batching) — IN PROGRESS
 
+**Status note (session 3):** the test-drift work below supersedes the premise
+of the historical "batched local tool calls rejected" framing. Hermes 0.21.x
+supports parallel MCP tool calls; the one-tool-per-turn prompt instruction is
+a conservative mitigation, not a proven root-cause fix. Keep it, but treat a
+Deft-side investigation (does the server tolerate the certification tool-call
+sequence 0.21.5 actually produces?) as still open.
+
 **Problem:** Hermes 0.21.5 rejects batched/parallel local tool calls in a single
 operation. The certification prompt told the model to "Call these tools now:
 …" with 8 tools listed, inviting a batched response. The `record_decision`
@@ -82,24 +89,34 @@ the blind-bind. On a `fork/*` branch (never in place on upstream):
 - [ ] Regenerate bundle + checksums; keep official preview.14/15 assets
       untouched (bundle URL is versioned by tag, so upstream assets are safe
       by construction — verify the fork's bundle URL differs).
-- [ ] Hermes-side: fix the 2 stale test assumptions in
-      `test_deft_platform.py` against 0.21.5 internals
-      (`_run_on_mcp_loop` gone, journal-path behavior changed). Requires
-      Hermes 0.21.5 source — see "Hermes source access" below.
 
-### 3. Hermes 0.21.5 source access — BLOCKING item 2
+**Validator/test surface to update together (they encode the same pins):**
 
-The scratch workspace on the Hermes host was pruned. To trace the tool-loop
-batching rejection and the `_run_on_mcp_loop` replacement, the coding agent
-needs Hermes 0.21.5 source. Options (in preference order):
+- `scripts/lib/hermes-integration-bundle.mjs` — `validateManifest` L255-259
+      (exact release pins), L296 (`testedMinorRange` makes `>=0.20.5 <0.22.0`
+      structurally impossible), L299-311 (calendar-tag ref + provenance).
+- `apps/api/src/scripts/hermes-employee-release-gate.ts` L383-387 (same
+      invariants; `probeHermesRuntime` needs a clean checkout matching pins).
+- `scripts/generate-release-manifest.mjs` L92.
+- Tests: `scripts/hermes-integration-bundle.test.mjs` (L141-152),
+      `scripts/release-workflow.test.mjs` (L234, L278-279),
+      `apps/api/test/hermes-employee-release-gate-contract.test.ts`,
+      `apps/api/test/hermes-native-onboarding.test.ts` (L17 asserts
+      integration_version 0.5.1).
+- `hermesIntegrationBundleUrl()` in `apps/api/src/routes/agent-employees.ts`
+      L600-603 defaults to the upstream GitHub releases URL; fork must
+      override via `DEFT_HERMES_BUNDLE_URL` or change the default — the
+      runtime_setup step text tells the operator that URL, so they change
+      together.
+- Release pipeline stays gated by `release/release-scope.json`
+      (`scope: "core"`); keep fork releases core-scope.
 
-- [ ] Copy the runtime's `gateway/` package (or the whole repo at v0.21.5)
-      from the Hermes host into `docs/fork/vendor/hermes/` **without** secrets,
-      so the agent can read it across sessions. Do not commit secrets.
-- [ ] Or grant fetch access to `github.com/NousResearch/hermes-agent` and
-      let the agent read tag v0.21.5 source from upstream.
-- [ ] Without either, item 2 is limited to manifest text + adapter test
-      stubs; the real 0.21.5 tool-loop behavior stays unverified.
+### 3. Hermes 0.21.5 source access — RESOLVED
+
+A local read-only checkout of NousResearch/hermes-agent is available at a
+sibling workspace root (see session log for the exact facts about checkout
+version vs the 0.21.5 release tag). Version-sensitive claims must be checked
+against the release tag, not the checkout HEAD.
 
 ### 4. UI/UX + core feature changes — QUEUED
 
@@ -158,3 +175,31 @@ git merge upstream/master       # on fork/main, resolve, push origin fork/main
   from the repo entirely (personal stack details; not needed). This roadmap
   is now the single durable handoff. Also fixed a typo in fork rules
   ("eps merges" → "merge commits").
+- **2026-10-04 (session 2):** Reproduced the upstream suite against a local
+  hermes-agent checkout. Created the local test runner
+  `.fork-bin/run-deft-platform-tests.sh` (untracked by design). Established
+  the checkout facts: tag `v2026.9.24` is the Hermes **0.21.5** release;
+  the checkout is `main` newer than that tag. Suite run reproduced 27 tests
+  with 2 errors — both test-side staleness, not adapter bugs (see session 3).
+- **2026-10-04 (session 3):** Diagnosed and fixed both suite failures;
+  committed `44fdd82` "Fix Hermes 0.21 test drift in deft-platform suite":
+  1. `_run_on_mcp_loop` moved to `tools/mcp_tool_loop.py` and
+     `_make_tool_handler` to `tools/mcp_tool_handlers.py` (Hermes 0.21 module
+     decomposition); test now patches the modules where production reads
+     them, matching Hermes's own test seams.
+  2. New Hermes 0.21 gateway runtime-status writer
+     (`gateway_state.json`, process-global daemon thread) raced
+     `TemporaryDirectory` cleanup under patched `HERMES_HOME`, flaking the
+     named-profile journal test intermittently (reproduced ~50% of runs).
+     Neutralized by patching `gateway.status.publish_runtime_status` in
+     `setUp`. Root cause verified by stack tracing the writer.
+  Suite: 27/27 green, stable across 11 consecutive full runs. Adapter code
+  unchanged — plugin surface is stable in 0.21.x. Both fixes are clean
+  upstream-PR candidates (upstream will hit the same drift re-certifying
+  against 0.21). Roadmap item 3 resolved; item 2 (manifest + validators)
+  is now unblocked and its full file list is recorded above.
+  ```
+  .fork-bin/run-deft-platform-tests.sh
+  ```
+  is the canonical way to re-verify compatibility against any hermes-agent
+  checkout (`HERMES=/path` overrides; defaults to the sibling workspace).

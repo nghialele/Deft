@@ -75,41 +75,41 @@ restart-proof stages.
 - [ ] Watch for: nonce recorded via `record_decision`, restart stage green,
       exactly one delivery + one reply (no duplicate channel events).
 
-### 2. Experimental manifest update — PENDING
+### 2. Experimental manifest update — RESOLVED (pending deploy validation)
 
-`integrations/hermes/integration-manifest.json` still pins
-`deft_release_compatibility: "=0.3.0-preview.14"` and
-`hermes_compatibility: ">=0.20.5 <0.21.0"` — the compatibility gap that forced
-the blind-bind. On a `fork/*` branch (never in place on upstream):
+Widened to `>=0.20.5 <0.22.0` on 2026-10-04, marked experimental:
 
-- [ ] Bump `deft_release_compatibility` to `>=0.3.0-preview.14 <0.3.1`
-      (fork tracks post-preview.15 master).
-- [ ] Bump `hermes_compatibility` to `>=0.20.5 <0.22.0`, clearly labeled
-      experimental: add a `"x-fork-experimental": true` marker and a note field.
-- [ ] Regenerate bundle + checksums; keep official preview.14/15 assets
-      untouched (bundle URL is versioned by tag, so upstream assets are safe
-      by construction — verify the fork's bundle URL differs).
+- [x] `deft_release` / `deft_release_compatibility` → `0.3.0-preview.15`
+      (validator requires exact match with `package.json`).
+- [x] `hermes_compatibility` → `>=0.20.5 <0.22.0` with
+      `"x-fork-experimental": true` + note field (0.20.x is carried as the
+      upstream-declared floor; only 0.21.5 is suite-verified).
+- [x] `hermes_tested` → 0.21.5, `refs/tags/v2026.9.24`, commit
+      `f97608f178d1ffeca59860195ab7da295f7c8e5f`.
+- [x] `testedMinorRange` strictness in `hermes-integration-bundle.mjs` now
+      allows a wider range **only** for `x-fork-experimental` manifests, and
+      still requires the range to cover `hermes_tested.version`
+      (`rangeCovers` helper). Non-experimental manifests keep the strict
+      single-minor derivation unchanged.
+- [x] Audit doc gained a dated 2026-10-04 fork revalidation section whose
+      provenance lines match the new manifest pin (validator does substring
+      matching against it).
+- [x] `scripts/hermes-integration-bundle.test.mjs` assertions updated to
+      the new pins.
+- [x] Setup-step troubleshooting now documents `DEFT_HERMES_BUNDLE_URL`
+      for fork operators (default URL stays upstream).
+- [x] `HERMES_INTEGRATION_VERSION` left at `0.5.1` (no semantic contract
+      change; consumers key on manifest fields, not this constant).
 
-**Validator/test surface to update together (they encode the same pins):**
+**Validation (local, all green):** bundle build+verify (deterministic,
+content sha256 `5aa85f40…`), bundle tests 8/8, release-workflow tests 16/16,
+gate-contract tests 5/5, onboarding tests 2/2, certification-stability 7/7
+(disposable pgvector container), python adapter suite 27/27 against the
+0.21.5 tag worktree (see audit doc), `tsc --noEmit` clean.
 
-- `scripts/lib/hermes-integration-bundle.mjs` — `validateManifest` L255-259
-      (exact release pins), L296 (`testedMinorRange` makes `>=0.20.5 <0.22.0`
-      structurally impossible), L299-311 (calendar-tag ref + provenance).
-- `apps/api/src/scripts/hermes-employee-release-gate.ts` L383-387 (same
-      invariants; `probeHermesRuntime` needs a clean checkout matching pins).
-- `scripts/generate-release-manifest.mjs` L92.
-- Tests: `scripts/hermes-integration-bundle.test.mjs` (L141-152),
-      `scripts/release-workflow.test.mjs` (L234, L278-279),
-      `apps/api/test/hermes-employee-release-gate-contract.test.ts`,
-      `apps/api/test/hermes-native-onboarding.test.ts` (L17 asserts
-      integration_version 0.5.1).
-- `hermesIntegrationBundleUrl()` in `apps/api/src/routes/agent-employees.ts`
-      L600-603 defaults to the upstream GitHub releases URL; fork must
-      override via `DEFT_HERMES_BUNDLE_URL` or change the default — the
-      runtime_setup step text tells the operator that URL, so they change
-      together.
-- Release pipeline stays gated by `release/release-scope.json`
-      (`scope: "core"`); keep fork releases core-scope.
+**Not done (deliberately):** regenerating/publishing a fork bundle tarball
+(upstream assets untouched; fork publish step is a user decision) and
+end-to-end certification on the deployment.
 
 ### 3. Hermes 0.21.5 source access — RESOLVED
 
@@ -203,3 +203,20 @@ git merge upstream/master       # on fork/main, resolve, push origin fork/main
   ```
   is the canonical way to re-verify compatibility against any hermes-agent
   checkout (`HERMES=/path` overrides; defaults to the sibling workspace).
+- **2026-10-04 (session 5):** Implemented ROADMAP item 2 (experimental
+  manifest update). Manifest: `deft_release` → 0.3.0-preview.15,
+  `hermes_compatibility` → `>=0.20.5 <0.22.0`, `hermes_tested` → 0.21.5 @
+  `refs/tags/v2026.9.24` (`f97608f…`), new `x-fork-experimental: true` + note.
+  Validator: `x-fork-experimental` manifests may widen the range past
+  `testedMinorRange` but must still cover the tested version (`rangeCovers`).
+  Audit doc: 2026-10-04 fork revalidation section (0.21.5 worktree, 27/27).
+  Tests: bundle 8/8, release-workflow 16/16, gate-contract 5/5, onboarding
+  2/2, certification-stability 7/7, python suite 27/27, tsc clean. Also:
+  troubleshooting line documents `DEFT_HERMES_BUNDLE_URL` for fork operators
+  (default bundle URL intentionally stays upstream). Range choice:
+  `>=0.20.5 <0.22.0` with an honest "only 0.21.5 tested" note — the honest
+  floor is 0.21.0 but upstream's own pin declares 0.20.5, so the fork keeps
+  the upstream floor while flagging 0.20.x as untested via the note field.
+  **Test container note:** `deft-fork-test-postgres` (port 5434) uses
+  `POSTGRES_PASSWORD=forktest`, db `deft_test` — not the `postgres:postgres`
+  creds used in earlier sessions (container was recreated).

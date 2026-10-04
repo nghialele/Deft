@@ -218,6 +218,23 @@ function testedMinorRange(version) {
   return `>=${version} <${match[1]}.${Number.parseInt(match[2], 10) + 1}.0`;
 }
 
+function rangeCovers(range, version) {
+  const match = range?.match(/^>=([\d.]+) <([\d.]+)$/);
+  if (!match) throw new Error(`Unsupported Hermes compatibility range: ${range ?? 'missing'}`);
+  const [min, max, actual] = [match[1], match[2], version].map(parseSemver);
+  if (!actual) throw new Error(`Invalid tested Hermes version: ${version ?? 'missing'}`);
+  return compareSemver(actual, min) >= 0 && compareSemver(actual, max) < 0;
+}
+
+function parseSemver(text) {
+  const match = text?.match(/^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$/);
+  return match ? [Number(match[1]), Number(match[2]), Number(match[3])] : null;
+}
+
+function compareSemver(a, b) {
+  return a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+}
+
 function findAdapter(manifest, id) {
   const adapter = manifest.adapters?.find((candidate) => candidate.id === id);
   if (!adapter) throw new Error(`Hermes manifest is missing adapter ${id}`);
@@ -294,7 +311,14 @@ async function validateManifest(repoRoot, manifest, packageJson) {
     throw new Error('The root Hermes configuration must default to direct HTTP MCP');
   }
   if (manifest.hermes_compatibility !== testedMinorRange(manifest.hermes_tested?.version)) {
-    throw new Error('Hermes compatibility must be limited to the tested runtime minor line');
+    if (manifest['x-fork-experimental'] !== true) {
+      throw new Error('Hermes compatibility must be limited to the tested runtime minor line');
+    }
+    // Experimental (fork) manifests may declare a range wider than the single
+    // tested minor line, but it must still contain the tested version.
+    if (!rangeCovers(manifest.hermes_compatibility, manifest.hermes_tested?.version)) {
+      throw new Error('Hermes compatibility must cover the tested runtime version');
+    }
   }
   if (
     manifest.hermes_tested?.distribution !== 'hermes-agent'

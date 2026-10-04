@@ -1320,6 +1320,7 @@ export function buildRuntimeSetup(
         'Avoid passing a toolset override that disables MCP tools for the run.',
         'DEFT_CHANNEL_URL and DEFT_CHANNEL_TOKEN alone do not wake Hermes; deft-platform must be enabled in the active profile and the Hermes gateway must be running.',
         `If deft-platform reports INCOMPATIBLE_CHANNEL, install the integration bundle for Deft ${DEFT_RELEASE_VERSION}; do not mix adapter versions.`,
+        `Fork deployments that publish their own bundle must set DEFT_HERMES_BUNDLE_URL before generating setup instructions; the default points at the upstream Maneek21/Deft release assets.`,
         'If a channel reply appears twice, stop any legacy Agent Channel bridge or duplicate Hermes profile immediately. Only one adapter may consume work for an employee.',
         'The embedded Node stdio shim and bundled Node Agent Channel bridge are rollback-only. Stop Hermes and disable deft-platform before using them, and rotate both employee credentials during rollback.',
       ],

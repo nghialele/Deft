@@ -32,3 +32,25 @@ upstream worktree: clean (0 changed or untracked files)
 
 This local revalidation remains supporting evidence only. The release workflow
 must reproduce the pin and suite from the exact release tag before publication.
+
+## Revalidation — 2026-10-04 (fork, experimental)
+
+Revalidated against the Hermes 0.21.5 release. Recorded pin:
+
+```text
+distribution: hermes-agent
+version: 0.21.5
+repository: https://github.com/NousResearch/hermes-agent.git
+ref: refs/tags/v2026.9.24
+commit: f97608f178d1ffeca59860195ab7da295f7c8e5f
+```
+
+The native adapter suite was run from a clean detached worktree of
+`refs/tags/v2026.9.24` (commit `f97608f178d1ffeca59860195ab7da295f7c8e5f`):
+27 tests, all passing. The worktree was removed afterward and the host
+checkout left clean.
+
+This revalidation is fork evidence, not an upstream certification. The
+manifest's compatibility range extends past this tested version and is
+marked experimental (`x-fork-experimental: true`); only 0.21.5 within
+that range is suite-verified.

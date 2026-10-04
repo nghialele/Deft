@@ -138,13 +138,13 @@ test('native-first bundle and verifier evidence are deterministic across isolate
   assert.equal(firstEvidence.manifest.default_adapter, 'native');
   assert.equal(firstEvidence.manifest.mcp.default_transport, 'direct_http');
   assert.equal(firstEvidence.manifest.mcp.endpoint_path, '/api/mcp/hermes/v1');
-  assert.equal(firstEvidence.manifest.hermes_compatibility, '>=0.20.5 <0.21.0');
+  assert.equal(firstEvidence.manifest.hermes_compatibility, '>=0.20.5 <0.22.0');
   assert.deepEqual(firstEvidence.manifest.hermes_tested, {
     distribution: 'hermes-agent',
-    version: '0.20.5',
+    version: '0.21.5',
     repository: 'https://github.com/NousResearch/hermes-agent.git',
-    ref: 'refs/tags/v2026.8.19',
-    commit: 'fcbd1076a93841fa88855acce810e342a5b78101',
+    ref: 'refs/tags/v2026.9.24',
+    commit: 'f97608f178d1ffeca59860195ab7da295f7c8e5f',
     provenance: {
       runtime_audit: 'docs/superpowers/audits/2026-08-26-hermes-native-runtime-provenance.md',
       native_adapter_suite: 'integrations/hermes/deft-platform/test_deft_platform.py',

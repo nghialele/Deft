@@ -644,6 +644,9 @@ test('owner can use guarded routes without exposing a prompt-bearing shell comma
   assert.match(startBody.instructions, /restart the Hermes gateway/i);
   assert.doesNotMatch(startBody.instructions, /restart the (?:Hermes )?channel bridge/i);
   assert.match(startBody.runtime_setup.certification_prompt, /final reply.*nonce/i);
+  assert.match(startBody.runtime_setup.certification_prompt, /one tool call per assistant turn/i);
+  assert.match(startBody.runtime_setup.certification_prompt, /batched or parallel local tool calls/i);
+  assert.match(startBody.instructions, /one tool call per assistant turn/i);
 
   await withClient(async (client) => {
     for (const tool of startBody.challenge.required_tools) {

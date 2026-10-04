@@ -1189,6 +1189,9 @@ function buildCertificationPrompt(
     prefixNote,
     `Use caller_employee_slug exactly as "${employee.slug}" on every Deft MCP tool call.`,
     `Call these tools now: ${toolNames.join(', ')}.`,
+    runtimeKind === 'hermes'
+      ? 'Issue exactly one tool call per assistant turn and wait for its result before the next call. Hermes rejects batched or parallel local tool calls, so never combine multiple mcp_deft_* calls into a single message or operation.'
+      : 'Issue one tool call at a time and wait for each result before calling the next tool.',
     `When ${runtimeToolName(runtimeKind, 'task_query')} returns a task, confirm it includes allowed_next_statuses; do not mutate the task.`,
     `When ${runtimeToolName(runtimeKind, 'module_list')} returns an enabled module, call ${runtimeToolName(runtimeKind, 'module_schema_get')} for it and inspect the exact create/update input schemas and collection examples; do not create or update a record. An empty module list is valid.`,
     `Use ${runtimeToolName(runtimeKind, 'memory_write')} to save a private certification memory whose title and body contain ${nonce}; use idempotency_key "certification:${nonce}".`,
@@ -1309,6 +1312,7 @@ export function buildRuntimeSetup(
       certification_prompt: certificationPrompt,
       troubleshooting: [
         'If hermes mcp test deft passes but certification is pending, the model loop has not called Deft tools yet.',
+        'If a Deft tool call is rejected as batched or parallel, instruct the model to issue exactly one tool call per assistant turn; Hermes rejects multiple local tool calls combined into a single operation.',
         'Hermes tools/list may describe tools as deft:<tool>, but the model-visible tools are named mcp_deft_<tool>.',
         'Use names such as mcp_deft_ping_alive in the prompt; bare names may be ignored by Hermes.',
         'Use mcp_deft_memory_recall for wiki context; mcp_deft_wiki_search exists only for compatibility with older/native wording.',
@@ -1362,6 +1366,9 @@ function certificationInstructions(
     `Connect the runtime to ${mcpEndpointUrl()} with its bearer token.`,
     `Use caller_employee_slug exactly as "${employee.slug}" on every tool call.`,
     `Run these Deft MCP tools: ${required}.`,
+    runtimeKindOf(employee) === 'hermes'
+      ? 'Instruct the model to issue exactly one tool call per assistant turn; Hermes 0.21.5 rejects batched or parallel local tool calls in a single operation.'
+      : 'Instruct the runtime to issue one tool call at a time.',
     `Include this exact challenge nonce in record_conversation_turn and record_decision: ${nonce}.`,
     'For task_query, search for any active task or request a small list, and confirm returned tasks expose allowed_next_statuses. Do not mutate task state during certification.',
     'For module_list, request enabled modules. If one exists, call module_schema_get and inspect its create/update input schemas and collection examples. An empty list is valid; do not mutate module records during certification.',

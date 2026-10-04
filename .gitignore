@@ -80,6 +80,8 @@ DEPLOYMENT-READINESS-REPORT.md
 DISSONANCE-AUDIT-2026-05-04.md
 HUMAN-TEST-GUIDE.md
 ROADMAP.md
+!docs/fork/ROADMAP.md
+!docs/fork/deft_hermes_report.md
 deft-feature-roadmap.md
 deft-huddles-spec.md
 deft-qa-test-results.md

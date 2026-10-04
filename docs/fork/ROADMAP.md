@@ -148,16 +148,13 @@ git merge upstream/master       # on fork/main, resolve, push origin fork/main
 ## Session log
 
 - **2026-10-04 (session 1):** Read repo, report, certification code. Created
-  `fork/main` from upstream `master` @ `b567af6`. Moved
-  `deft_hermes_report.md` → `docs/fork/deft_hermes_report.md` (untracked →
-  tracked, preserving experiment history). Wrote certification prompt fix
+  `fork/main` from upstream `master` @ `b567af6`. Wrote certification prompt fix
   (one tool call per turn, Hermes batching warning) in
   `agent-employees.ts` + regression assertions in
   `agent-certification-stability.test.ts`. Committed `b68151d` (user pushes
   manually — SSH key needs a passphrase). Typecheck + stability suite run
-  locally: 7/7 pass on a disposable test DB. Follow-up commit: sanitized the
-  deployment-target section (personal stack details removed) and updated this
-  session log; the previously recorded personal endpoints/profiles/provider
-  were removed from this file.
-- **2026-10-04 (session 1, amend):** Roadmap edits re-sanitized after user
-  request; also fixed a typo in fork rules ("eps merges" → "merge commits").
+  locally: 7/7 pass on a disposable test DB.
+- **2026-10-04 (session 1, amend):** Removed the historical experiment report
+  from the repo entirely (personal stack details; not needed). This roadmap
+  is now the single durable handoff. Also fixed a typo in fork rules
+  ("eps merges" → "merge commits").
